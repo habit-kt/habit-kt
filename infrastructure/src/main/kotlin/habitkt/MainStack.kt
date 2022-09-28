@@ -3,50 +3,56 @@ package habitkt
 import com.hashicorp.cdktf.App
 import com.hashicorp.cdktf.TerraformStack
 import com.hashicorp.cdktf.providers.azurerm.*
-import software.constructs.Construct
+import software.amazon.jsii.Builder
+import java.util.*
 
-class MainStack(scope: Construct, id: String) : TerraformStack(scope, id) {
-
-    init {
-        AzurermProvider.Builder.create(this, "AzureRm")
-            .features(AzurermProviderFeatures.builder().build())
-            .build()
-
-        val rg = ResourceGroup.Builder.create(this, "$id-rg")
-            .name("example-appserviceplan")
-            .location("West Europe")
-            .build()
-
-        val asp = AppServicePlan.Builder.create(this, "$id-asp")
-            .name("example-appserviceplan")
-            .location(rg.location)
-            .resourceGroupName(rg.name)
-            .sku(
-                AppServicePlanSku.builder()
-                    .tier("Standard")
-                    .size("S1")
-                    .build()
-            )
-            .build()
-
-        AppService.Builder.create(this, "$id-ap")
-            .name("example-app-service")
-            .location(rg.location)
-            .resourceGroupName(rg.name)
-            .appServicePlanId(asp.id)
-            .siteConfig(
-                AppServiceSiteConfig.builder()
-                    .dotnetFrameworkVersion("v4.0")
-                    .scmType("LocalGit")
-                    .build()
-            )
-            .appSettings(mapOf("SOME_KEY" to "some-value"))
-            .build()
-    }
-}
+const val projectName = "example"
 
 fun main() {
     val app = App()
-    MainStack(app, "example")
+    with(TerraformStack(app, projectName)) {
+
+        (AzurermProvider.Builder.create(this, "AzureRm")) {
+            features(AzurermProviderFeatures.builder().build())
+        }
+
+        val resourceGroup = (ResourceGroup.Builder.create(this, id())) {
+            name("$projectName-resource-group")
+            location("West Europe")
+        }
+
+        val appServicePlan = (AppServicePlan.Builder.create(this, id())) {
+            name("$projectName-app-service-plan")
+            location(resourceGroup.location)
+            resourceGroupName(resourceGroup.name)
+            sku(
+                (AppServicePlanSku.builder()) {
+                    tier("Standard")
+                    size("S1")
+                }
+            )
+        }
+
+        val appService = (AppService.Builder.create(this, id())) {
+            name("$projectName-app-service")
+            location(resourceGroup.location)
+            resourceGroupName(resourceGroup.name)
+            appServicePlanId(appServicePlan.id)
+            siteConfig(
+                (AppServiceSiteConfig.builder()) {
+                    dotnetFrameworkVersion("v4.0")
+                    scmType("LocalGit")
+                }
+            )
+            appSettings(mapOf("SOME_KEY" to "some-value"))
+        }
+
+    }
     app.synth()
 }
+
+fun id(): String = UUID.randomUUID().toString()
+
+operator fun <R, B : Builder<R>> B.invoke(
+    context: B.() -> Unit
+): R = this.apply(context).build()

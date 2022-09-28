@@ -7,4 +7,4 @@
 **/build
 
 # Terraform
-infrastructure/cdktf.out
+cdktf.out
