@@ -10,7 +10,7 @@ include(
     "frontend",
     "backend",
     "model",
-    "business-logic",
-    "data-access",
+    "export",
+    "calculate",
     "infrastructure"
 )
