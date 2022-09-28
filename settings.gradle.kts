@@ -11,5 +11,6 @@ include(
     "backend",
     "model",
     "business-logic",
-    "data-access"
+    "data-access",
+    "infrastructure"
 )

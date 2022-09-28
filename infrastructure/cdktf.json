@@ -1,0 +1,5 @@
+{
+  "language": "java",
+  "app": "gradlew infrastructure:run",
+  "terraformProviders": ["azurerm@~> 2.0.0"]
+}

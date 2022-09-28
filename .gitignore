@@ -5,3 +5,6 @@
 # Gradle
 .gradle
 **/build
+
+# Terraform
+infrastructure/cdktf.out
