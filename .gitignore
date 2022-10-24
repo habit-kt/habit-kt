@@ -8,5 +8,5 @@
 
 # Terraform
 cdktf.out
-
+infrastructure/src/main/resources/imports/**
 infrastructure/src/main/java/imports/*
