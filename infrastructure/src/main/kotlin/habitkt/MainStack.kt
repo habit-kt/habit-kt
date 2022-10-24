@@ -33,19 +33,27 @@ fun main() {
             )
         }
 
-        val appService = (AppService.Builder.create(this, id())) {
-            name("$projectName-app-service")
+//        val appService = (AppService.Builder.create(this, id())) {
+//            name("$projectName-app-service")
+//            location(resourceGroup.location)
+//            resourceGroupName(resourceGroup.name)
+//            appServicePlanId(appServicePlan.id)
+//            siteConfig(
+//                (AppServiceSiteConfig.builder()) {
+//                    dotnetFrameworkVersion("v4.0")
+//                    scmType("LocalGit")
+//                }
+//            )
+//            appSettings(mapOf("SOME_KEY" to "some-value"))
+//        }
+
+        val staticWebApp = (StaticSite.Builder.create(this, id())){
+            name("$projectName-frontend")
             location(resourceGroup.location)
             resourceGroupName(resourceGroup.name)
-            appServicePlanId(appServicePlan.id)
-            siteConfig(
-                (AppServiceSiteConfig.builder()) {
-                    dotnetFrameworkVersion("v4.0")
-                    scmType("LocalGit")
-                }
-            )
-            appSettings(mapOf("SOME_KEY" to "some-value"))
         }
+
+        // val calculate = (FunctionApp.Builder.create(this, id()))
 
     }
     app.synth()
