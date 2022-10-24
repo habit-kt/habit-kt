@@ -4,6 +4,7 @@ import com.hashicorp.cdktf.App
 import com.hashicorp.cdktf.TerraformStack
 import com.hashicorp.cdktf.providers.azurerm.app_service_plan.AppServicePlan
 import com.hashicorp.cdktf.providers.azurerm.app_service_plan.AppServicePlanSku
+import com.hashicorp.cdktf.providers.azurerm.container_registry.ContainerRegistry
 import com.hashicorp.cdktf.providers.azurerm.cosmosdb_account.CosmosdbAccount
 import com.hashicorp.cdktf.providers.azurerm.cosmosdb_account.CosmosdbAccountConsistencyPolicy
 import com.hashicorp.cdktf.providers.azurerm.cosmosdb_account.CosmosdbAccountGeoLocation
@@ -91,7 +92,7 @@ fun main() {
         }
 
         val cosmosdbAccount = (CosmosdbAccount.Builder.create(this, id())){
-            name("$projectName-habit-db")
+            name("$projectName-db")
             location(resourceGroup.location)
             resourceGroupName(resourceGroup.name)
             enableAutomaticFailover(false)
@@ -106,6 +107,12 @@ fun main() {
             }))
         }
 
+        val containerRegistry = ((ContainerRegistry.Builder.create(this, id()))) {
+            name("$projectName")
+            location(resourceGroup.location)
+            resourceGroupName(resourceGroup.name)
+            sku("Basic")
+        }
 
 
     }
