@@ -8,6 +8,6 @@ application {
 }
 
 dependencies {
-    implementation("com.hashicorp:cdktf:0.12.2")
-    implementation("com.hashicorp:cdktf-provider-azurerm:2.0.17")
+    implementation("com.hashicorp:cdktf:0.13.0")
+    implementation("com.hashicorp:cdktf-provider-azurerm:3.0.1")
 }

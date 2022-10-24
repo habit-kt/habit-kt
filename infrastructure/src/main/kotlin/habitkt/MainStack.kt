@@ -2,7 +2,17 @@ package habitkt
 
 import com.hashicorp.cdktf.App
 import com.hashicorp.cdktf.TerraformStack
-import com.hashicorp.cdktf.providers.azurerm.*
+import com.hashicorp.cdktf.providers.azurerm.app_service_plan.AppServicePlan
+import com.hashicorp.cdktf.providers.azurerm.app_service_plan.AppServicePlanSku
+import com.hashicorp.cdktf.providers.azurerm.cosmosdb_account.CosmosdbAccount
+import com.hashicorp.cdktf.providers.azurerm.cosmosdb_account.CosmosdbAccountConsistencyPolicy
+import com.hashicorp.cdktf.providers.azurerm.cosmosdb_account.CosmosdbAccountGeoLocation
+import com.hashicorp.cdktf.providers.azurerm.function_app.FunctionApp
+import com.hashicorp.cdktf.providers.azurerm.provider.AzurermProvider
+import com.hashicorp.cdktf.providers.azurerm.provider.AzurermProviderFeatures
+import com.hashicorp.cdktf.providers.azurerm.resource_group.ResourceGroup
+import com.hashicorp.cdktf.providers.azurerm.static_site.StaticSite
+import com.hashicorp.cdktf.providers.azurerm.storage_account.StorageAccount
 import software.amazon.jsii.Builder
 import java.util.*
 
@@ -33,6 +43,23 @@ fun main() {
             )
         }
 
+        val terraformStorage = (StorageAccount.Builder.create(this, id())) {
+            name("${projectName}terraform")
+            location(resourceGroup.location)
+            resourceGroupName(resourceGroup.name)
+            accountTier("Standard")
+            accountReplicationType("LRS")
+        }
+
+        val calculateFunctionStorage = (StorageAccount.Builder.create(this, id())) {
+            name("${projectName}calculatefunction")
+            location(resourceGroup.location)
+            resourceGroupName(resourceGroup.name)
+            accountTier("Standard")
+            accountReplicationType("LRS")
+        }
+
+
 //        val appService = (AppService.Builder.create(this, id())) {
 //            name("$projectName-app-service")
 //            location(resourceGroup.location)
@@ -53,7 +80,33 @@ fun main() {
             resourceGroupName(resourceGroup.name)
         }
 
-        // val calculate = (FunctionApp.Builder.create(this, id()))
+
+        val calculate = (FunctionApp.Builder.create(this, id())) {
+            name("$projectName-calculate")
+            location(resourceGroup.location)
+            resourceGroupName(resourceGroup.name)
+            appServicePlanId(appServicePlan.id)
+            storageAccountName(calculateFunctionStorage.name)
+            storageAccountAccessKey(calculateFunctionStorage.primaryAccessKey)
+        }
+
+        val cosmosdbAccount = (CosmosdbAccount.Builder.create(this, id())){
+            name("$projectName-habit-db")
+            location(resourceGroup.location)
+            resourceGroupName(resourceGroup.name)
+            enableAutomaticFailover(false)
+            kind("globalDocumentDb")
+            consistencyPolicy ( (CosmosdbAccountConsistencyPolicy.builder()){
+                consistencyLevel("Session")
+            }
+            )
+            geoLocation(listOf((CosmosdbAccountGeoLocation.builder()){
+                failoverPriority(0)
+                location(resourceGroup.location)
+            }))
+        }
+
+
 
     }
     app.synth()
