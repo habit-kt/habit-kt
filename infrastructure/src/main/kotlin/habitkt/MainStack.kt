@@ -124,7 +124,7 @@ fun main() {
             body(Fn.jsonencode("""
                 {
                     properties: {
-                    managedEnvironmentId = ${ }azapi_resource.managed_environment.id
+                    managedEnvironmentId = ${"" }azapi_resource.managed_environment.id
                     configuration = {
                         ingress = {
                             external = true
