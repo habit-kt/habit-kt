@@ -1,6 +1,7 @@
 package habitkt
 
 import com.hashicorp.cdktf.App
+import com.hashicorp.cdktf.Fn
 import com.hashicorp.cdktf.TerraformStack
 import com.hashicorp.cdktf.providers.azurerm.app_service_plan.AppServicePlan
 import com.hashicorp.cdktf.providers.azurerm.app_service_plan.AppServicePlanSku
@@ -14,6 +15,7 @@ import com.hashicorp.cdktf.providers.azurerm.provider.AzurermProviderFeatures
 import com.hashicorp.cdktf.providers.azurerm.resource_group.ResourceGroup
 import com.hashicorp.cdktf.providers.azurerm.static_site.StaticSite
 import com.hashicorp.cdktf.providers.azurerm.storage_account.StorageAccount
+import imports.azapi.resource.Resource
 import software.amazon.jsii.Builder
 import java.util.*
 
@@ -107,13 +109,57 @@ fun main() {
             }))
         }
 
-        val containerRegistry = ((ContainerRegistry.Builder.create(this, id()))) {
+        val containerRegistry = (ContainerRegistry.Builder.create(this, id())) {
             name("$projectName")
             location(resourceGroup.location)
             resourceGroupName(resourceGroup.name)
             sku("Basic")
         }
 
+        val containerAppsBackend  = (Resource.Builder.create(this, id())){
+            name("$projectName")
+            location(resourceGroup.location)
+            parentId(resourceGroup.id)
+            type("Microsoft.App/containerApps@2022-03-01")
+            body(Fn.jsonencode("""
+                {
+                    properties: {
+                    managedEnvironmentId = ${ }azapi_resource.managed_environment.id
+                    configuration = {
+                        ingress = {
+                            external = true
+                            targetPort =  80
+                         }
+                    }
+                    template = {
+                          containers      = [
+                          {
+                            image         = "habit-kt/backend:latest"
+                            name          = "habit-kt-backend"
+                            resources     = {
+                              cpu         = 0.5
+                              memory      = "1.0Gi"
+                            }
+                          },
+                          {
+                            image         = "habit-kt/export:latest"
+                            name          = "habit-kt-export"
+                            resources     = {
+                              cpu         = 0.5
+                              memory      = "1.0Gi"
+                            }
+                          }
+                          ]
+                          scale           = {
+                            minReplicas   = 1
+                            maxReplicas   = 1
+                          }
+                        }
+                      },
+                    }
+                }
+            """.trimIndent()))
+        }
 
     }
     app.synth()
