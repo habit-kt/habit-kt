@@ -3,45 +3,42 @@ package com.github.habitkt.model
 import kotlinx.datetime.LocalDate
 
 /*
-TODO:
- - klären mit Backend-Team ob und ggf. wie Referenzen in diesem Datenmodell hinterlegt werden müssen.
+TODO: In general: We still have mismatches between the pure DTO layer, where references are only represented by id
+  Strings and domain classes, where the reference is resolved. Currently we have mixtures, as the user is always the
+  full object, whereas the habitRefs are only Strings holding the IDs of a habit.
+  We should consider to harmonize this.
+  IMHO the domain object should hold the full object, whereas the DTO class should only hold the reference IDs.
  */
 
 /**
- * TODO:
- *  - Brauchen wir ein frei definierbares Kürzel für die Anzeige (z.B. im Kopf des Dashboards)?
- *  - Reicht ein abgeleitetes Kürzel aus dem Screennamen?
+ * Helps to hold and also to create a pair of a full length value with a dedicated abbreviation for compact display
+ * purposes.
  */
-data class UserData(
-    /**
-     * Unique identity in order to distinguish different habits.
-     */
-    val id: String,
+data class WithAbbreviation(val value: String, val shortcut: String) {
+    companion object {
+        fun of(value: String): WithAbbreviation = WithAbbreviation(value, value.take(2))
+    }
 
-    val screenName: String,
-
-    /**
-     * TODO: Klären, welcher Datentyp sinnvoll ist!
-     *   - URL?
-     *   - Bitmap?
-     *   - Enum?
-     * TODO: Laut UI-Team erst in Schritt 2 -> also fällt das weg?
-     */
-    val avatar: String
-)
-
-data class Abbreviation(val value: String) {
     init {
-        require(value.length <= 2) { "At maximum two character are allowed. Got ${value.length} characters." }
+        require(shortcut.length <= 2) { "At maximum two character are allowed. Got ${shortcut.length} characters." }
     }
 }
+
+/**
+ * TODO: Currently this user model is totally technology aware. Necessary fields might be added for authentication
+ *  purposes.
+ */
+data class UserData(
+    val id: String,
+    val screenName: WithAbbreviation,
+)
 
 /**
  * Defines a conceptual color for the visual representation.
  *
  * The UI can later map those values to actual styling information (like background- or text-colors, border, etc)
  *
- * TODO: Muss noch finalisiert werden
+ * TODO: finalize this; should be part of the frontend team, as they will investigate the representing color options.
  */
 enum class HabitColor {
     Red,
@@ -50,6 +47,22 @@ enum class HabitColor {
     Cyan,
     // etc.
 }
+
+/**
+ * Defines the type of target.
+ *
+ * Examples from user story:
+ * As a user I want to define the target value for a habit like
+ * - eat meat at most 3 times per week
+ * - run at least 2 times per week
+ * - work exactly five times a week
+ */
+enum class Target {
+    AtLeast,
+    AtMost,
+    Exact
+}
+
 
 /**
  * The core domain type, that represents one habit.
@@ -61,46 +74,60 @@ data class Habit(
     val id: String,
 
     /**
-     * TODO: Ableiten, ob eigens oder fremdes habit -> ``Boolean``
+     * Holds the owner of a habit. It is important to distinguish the own habits from habits that gets shared by
+     * someone else
      */
     val owner: UserData,
 
     /**
-     * In case that this is foreign habit, this list must remain empty.
+     * TODO: Question: Should this data be hosted by a view? So might a follower modify those values in order to make
+     *  them fit better into his own dashboard? If so, this must go into the `View` class.
      */
-    val sharedWith: List<UserData>,
+    val title: WithAbbreviation,
 
-    val title: String = "",
+    val description: String,
+
+    val target: Target,
 
     /**
-     * TODO: Anstelle eines Icons haben wir basierend auf den UI-Skizzen die Abbreviation gewählt.
+     * Should be weekly for the MVP; later it might get a scale too.
      */
-    val abbreviation: Abbreviation = Abbreviation(""),
-
-    val description: String = "",
-    val color: HabitColor,
+    val targetValue: UInt,
 
     /**
-     * TODO: Ursprünglich: ``priority``: "for a start we use the amount of tracked activities as priority"
-     */
-    val weeklyTargetValue: Int,
-
-    /**
-     * Defines the order for all visual appearances.
-     * Higher values have more importance and should appear at the "best" position.
-     */
-    val order: Int,
-
-    /**
-     * This flag is useful for partitioning all habits in two disjunctive sets:
-     * - all active (``true``) habits can be tracked and are shown in the dashboard.
-     * - all inactive (``false``) habits cannot be tracked and are not shown in the dashboard.
+     * Holds all views of a habit. At least one item (for the owner) is always present.
      *
-     * A foreign habit should be initialized with ``false`` in order to protect a user from being "habit bombed" by
-     * others.
+     * TODO: Might be possible to hold the data as a `Map<UserData, View>` in order to improve DB lookup / indexing!
      */
-    val active: Boolean
+    val views: List<View>,
 ) {
+    data class View(
+        val user: UserData,
+
+        /**
+         *  `true` for the owner of the enclosing habit, else `false`.
+         */
+        val isOwner: Boolean,
+
+        /**
+         * This flag is useful for partitioning all habits in two disjunctive sets:
+         * - all active (``true``) habits can be tracked and are shown in the dashboard.
+         * - all inactive (``false``) habits cannot be tracked and are not shown in the dashboard.
+         *
+         * A foreign habit should be initialized with ``false`` in order to protect a user from being "habit bombed" by
+         * others.
+         */
+        val active: Boolean,
+
+        /**
+         * Defines the order for all visual appearances.
+         * Higher values have more importance and should appear at the "best" position.
+         */
+        val order: UInt,
+
+        val color: HabitColor,
+    )
+
     /**
      * Convenience function to check, whether this habit is owned by the current principal.
      *
@@ -128,9 +155,95 @@ data class Habit(
 }
 
 /**
+ * Fits for the REST API for CRUD operations of the central core attributes of a habit.
+ * So only the owner is allowed to modify the habit by this.
+ */
+data class HabitDetails(
+    /**
+     *  Holds the ID of the corresponding habit.
+     */
+    val habitRef: String,
+
+    /**
+     * Holds the owner of a habit. It is important to distinguish the own habits from habits that gets shared by
+     * someone else
+     */
+    val owner: UserData,
+
+    /**
+     * TODO: Question: Should this data be hosted by a view? So might a follower modify those values in order to make
+     *  them fit better into his own dashboard? If so, this must go into the `View` class.
+     */
+    val title: WithAbbreviation,
+
+    val description: String,
+
+    val target: Target,
+
+    /**
+     * Should be weekly for the MVP; later it might get a scale too.
+     */
+    val targetValue: UInt,
+
+    /**
+     * Holds all views of a habit. At least one item (for the owner) is always present.
+     *
+     * TODO: Might be possible to hold the data as a `Set<UserData>` in order to improve DB lookup / indexing!
+     */
+    val sharedWith: List<UserData>,
+
+    )
+
+/**
+ * TODO: Investigate question about `title` attribute above. If that should be part of the `Habit.View` class,
+ *  this one becomes obsolete and the other should become stand alone class.
+ *
+ *  Fits for the REST API for the configuration of the dashboard (list of all habits for activation and sorting)
+ *  and for the dashboard (header) itself.
+ */
+data class HabitView(
+    /**
+     * Holds the ID of the corresponding habit.
+     */
+    val habitRef: String,
+
+    val user: UserData,
+
+    val title: WithAbbreviation,
+
+    /**
+     *  `true` for the owner of the enclosing habit, else `false`.
+     */
+    val isOwner: Boolean,
+
+    /**
+     * This flag is useful for partitioning all habits in two disjunctive sets:
+     * - all active (``true``) habits can be tracked and are shown in the dashboard.
+     * - all inactive (``false``) habits cannot be tracked and are not shown in the dashboard.
+     *
+     * A foreign habit should be initialized with ``false`` in order to protect a user from being "habit bombed" by
+     * others.
+     */
+    val active: Boolean,
+
+    /**
+     * Defines the order for all visual appearances.
+     * Higher values have more importance and should appear at the "best" position.
+     */
+    val order: UInt,
+
+
+    val color: HabitColor,
+
+    )
+
+/**
  * This holds exactly one tracking data for a [Habit].
  *
  * There might be multiple [track entries][TrackEntry] per day, that is why the [id] is needed as unique identifier.
+ *
+ * Fits for the REST API for creating or modifying one tracking entry.
+ * Also for getting a `List<TrackEntry>` of some timeframe for the details page.
  */
 data class TrackEntry(
     /**
@@ -138,29 +251,30 @@ data class TrackEntry(
      */
     val id: String,
 
-    val habit: Habit,
+    val habitRef: String,
     val date: LocalDate,
+    val value: UInt,
     val additionalInformation: String = ""
 )
 
 /**
- * Holds all tracked entries for one day and one habit.
+ * Encapsulates the needed information for a time frame. Can be used to define some range in time (with days as scale
+ * value).
  *
- * This might be useful for an overview of all tracking data of one habit for one day.
+ * This is commonly needed for querying [TrackEntry] from the service.
  */
-data class TrackEntriesByDate(
-    val date: LocalDate,
-    val entries: List<TrackEntry>
-)
+data class TimeFrame(val start: LocalDate, val days: UInt)
 
 /**
- * Holds all tracked habits for one day grouped by habit.
+ * Holds the static and calculated target values.
  *
- * This might be useful for showing a dashboard.
+ * This class is needed for the websocket based Dashboard part.
+ *
+ * @property sum: All [Habit.targetValue] values summed up for one day.
  */
-data class TrackEntriesByDateAndHabit(
+data class DailyAssessment(
+    val habitRef: String, // TODO: optional belassen oder entfernen?
     val date: LocalDate,
-    val entries: Map<Habit, List<TrackEntry>>
+    val sum: UInt,
+    val rating: UInt, // TODO: Correct type for representing percent?
 )
-
-
