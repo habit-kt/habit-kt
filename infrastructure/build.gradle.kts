@@ -9,5 +9,5 @@ application {
 
 dependencies {
     implementation("com.hashicorp:cdktf:0.13.0")
-    implementation("com.hashicorp:cdktf-provider-azurerm:3.0.1")
+    implementation("com.hashicorp:cdktf-provider-azurerm:3.0.15")
 }

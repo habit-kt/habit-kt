@@ -1,8 +1,8 @@
 {
   "language": "java",
-  "app": "gradlew infrastructure:run",
+  "app": "gradle run",
   "terraformProviders": [
-    "azurerm@~> 2.99.0",
+    "azurerm@~> 3.0.15",
     "azure/azapi@~> 1.0.0"
   ],
   "projectId": "0fbf2e0d-3700-4a18-aab4-20ed04e57f0b"

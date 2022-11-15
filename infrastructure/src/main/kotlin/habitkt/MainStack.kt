@@ -15,6 +15,7 @@ import com.hashicorp.cdktf.providers.azurerm.provider.AzurermProviderFeatures
 import com.hashicorp.cdktf.providers.azurerm.resource_group.ResourceGroup
 import com.hashicorp.cdktf.providers.azurerm.static_site.StaticSite
 import com.hashicorp.cdktf.providers.azurerm.storage_account.StorageAccount
+import imports.azapi.provider.AzapiProvider
 import imports.azapi.resource.Resource
 import software.amazon.jsii.Builder
 import java.util.*
@@ -27,6 +28,10 @@ fun main() {
 
         (AzurermProvider.Builder.create(this, "AzureRm")) {
             features(AzurermProviderFeatures.builder().build())
+        }
+
+        (AzapiProvider.Builder.create(this, "AzureAz")) {
+
         }
 
         val resourceGroup = (ResourceGroup.Builder.create(this, id())) {
@@ -98,7 +103,8 @@ fun main() {
             location(resourceGroup.location)
             resourceGroupName(resourceGroup.name)
             enableAutomaticFailover(false)
-            kind("globalDocumentDb")
+            kind("GlobalDocumentDB")
+            offerType("Standard")
             consistencyPolicy ( (CosmosdbAccountConsistencyPolicy.builder()){
                 consistencyLevel("Session")
             }
@@ -136,8 +142,8 @@ fun main() {
             type("Microsoft.App/containerApps@2022-03-01")
             body(Fn.jsonencode("""
                 {
-                    properties: {
-                    managedEnvironment = ${projectName}-env
+                    properties = {
+                    managedEnvironment = "${projectName}-env"
                     configuration = {
                         ingress = {
                             external = true
@@ -168,8 +174,7 @@ fun main() {
                             maxReplicas   = 1
                           }
                         }
-                      },
-                    }
+                      }
                 }
             """.trimIndent()))
         }
