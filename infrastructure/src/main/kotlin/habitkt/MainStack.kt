@@ -110,21 +110,34 @@ fun main() {
         }
 
         val containerRegistry = (ContainerRegistry.Builder.create(this, id())) {
-            name("$projectName")
+            name(projectName)
             location(resourceGroup.location)
             resourceGroupName(resourceGroup.name)
             sku("Basic")
         }
 
-        val containerAppsBackend  = (Resource.Builder.create(this, id())){
-            name("$projectName")
+        val containerEnvironment = (Resource.Builder.create(this, id())){
+            name("$projectName-env")
+            location(resourceGroup.location)
+            parentId(resourceGroup.id)
+            type("Microsoft.App/managedEnvironments@2022-03-01")
+            body(Fn.jsonencode("""
+                {
+                    properties = {
+                    }
+                }
+            """.trimIndent()))
+        }
+
+        val containerApps = (Resource.Builder.create(this, id())){
+            name(projectName)
             location(resourceGroup.location)
             parentId(resourceGroup.id)
             type("Microsoft.App/containerApps@2022-03-01")
             body(Fn.jsonencode("""
                 {
                     properties: {
-                    managedEnvironmentId = ${"" }azapi_resource.managed_environment.id
+                    managedEnvironment = ${projectName}-env
                     configuration = {
                         ingress = {
                             external = true
@@ -160,7 +173,6 @@ fun main() {
                 }
             """.trimIndent()))
         }
-
     }
     app.synth()
 }
